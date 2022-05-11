@@ -12,6 +12,7 @@ from .utils import on_green, on_red, print_progress_bar
 
 SPELLCHECK_URL = "https://orthographe.reverso.net/api/v1/Spelling"
 FAKE_USER_AGENT = "Mozilla/5.0 (Windows NT 6.2; rv:20.0) Gecko/20121202 Firefox/20.0"
+SUPPORTED_LANGUAGES = ("fra", "eng")
 
 
 def spell_check(text: str, language: str = "fra") -> dict:
@@ -22,6 +23,8 @@ def spell_check(text: str, language: str = "fra") -> dict:
     :param language: Text's language
     :return: Response from reverso
     """
+    if language not in SUPPORTED_LANGUAGES:
+        raise Exception(f"Language '{language}' not supported")
     response = requests.get(
         f"{SPELLCHECK_URL}?text={urllib.parse.quote(text)}&language={language}"
         "&getCorrectionDetails=true",
@@ -51,6 +54,8 @@ def build_suggestion_text(suggestions: list) -> str:
 def print_spell_check_results(text: str, corrections: dict):
     """
     Print properly corrections
+    :param text: Text checked
+    :param corrections: corrections suggested
     """
     index = 0
     result_text = ""
@@ -80,8 +85,8 @@ class ResultBuilder:  # pylint: disable=too-few-public-methods
 
     def append_results(self, text: str, corrections: list):
         """
-        Append corrections to full results
-        :param text: Text corrected
+        Append corrections to global results
+        :param text: Text checked
         :corrections: List of corrections to apply
         """
         for correction in corrections:
