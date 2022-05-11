@@ -2,6 +2,7 @@
 Main entrypoint
 """
 
+import argparse
 import sys
 import urllib
 
@@ -90,11 +91,19 @@ class ResultBuilder:  # pylint: disable=too-few-public-methods
         self.end_index += len(text)
 
 
-def main(cli):
-    """Main entrypoint"""
-    filename = cli[0]
-    with open(filename, "r", encoding="utf8") as stream:
-        text = stream.read()
+def get_cli_parser() -> argparse.ArgumentParser:
+    """Build and return CLI parser"""
+    parser = argparse.ArgumentParser(
+        "textchecker", description="Program to checker a text", epilog="Built by Antoine MANDIN"
+    )
+    parser.add_argument("path", help="Path to the file containing the text to check")
+    return parser
+
+
+def check_text(text: str):
+    """
+    Check the text
+    """
     sentences = split_sentences(text)
     builder = ResultBuilder()
     print("Loading corrections...")
@@ -103,6 +112,17 @@ def main(cli):
         result = spell_check(sentence)
         builder.append_results(sentence, result["corrections"])
     print_spell_check_results(text, builder.corrections)
+
+
+def main(cli: list):
+    """
+    Main entrypoint
+    :param cli: Command line arguments
+    """
+    arguments = get_cli_parser().parse_args(cli)
+    with open(arguments.path, "r", encoding="utf8") as stream:
+        text = stream.read()
+    check_text(text)
 
 
 if __name__ == "__main__":
