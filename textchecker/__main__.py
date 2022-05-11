@@ -2,6 +2,9 @@
 Main entrypoint
 """
 
+import sys
+import urllib
+
 import requests
 
 from .colors import on_green, on_red
@@ -19,7 +22,8 @@ def spell_check(text: str, language: str = "fra") -> dict:
     :return: Response from reverso
     """
     response = requests.get(
-        f"{SPELLCHECK_URL}?text={text}&language={language}&getCorrectionDetails=true",
+        f"{SPELLCHECK_URL}?text={urllib.parse.quote(text)}&language={language}"
+        "&getCorrectionDetails=true",
         headers={
             "Accept": "*/*",
             "Connection": "keep-alive",
@@ -43,13 +47,13 @@ def build_suggestion_text(suggestions: list) -> str:
     return suggestions_text
 
 
-def print_spell_check_results(text: str, result: dict):
+def print_spell_check_results(text: str, corrections: dict):
     """
-    Print properly results
+    Print properly corrections
     """
     index = 0
     result_text = ""
-    for correction in result["corrections"]:
+    for correction in corrections:
         result_text += text[index : correction["startIndex"]]
         suggestions_text = build_suggestion_text(correction["suggestions"])
         result_text += on_red(correction["mistakeText"]) + on_green(suggestions_text)
@@ -58,12 +62,47 @@ def print_spell_check_results(text: str, result: dict):
     print(result_text)
 
 
-def main():
+def split_sentences(text: str) -> list:
+    """
+    Split a string in several sentences
+    """
+    sentences = text.split(".")
+    return list(map(lambda sentence: sentence + ".", sentences))
+
+
+class ResultBuilder:  # pylint: disable=too-few-public-methods
+    """Build of full reverso result"""
+
+    def __init__(self):
+        self.corrections = []
+        self.end_index = 0
+
+    def append_results(self, text: str, corrections: list):
+        """
+        Append corrections to full results
+        :param text: Text corrected
+        :corrections: List of corrections to apply
+        """
+        for correction in corrections:
+            correction["startIndex"] += self.end_index
+            correction["endIndex"] += self.end_index
+            self.corrections.append(correction)
+        self.end_index += len(text)
+
+
+def main(cli):
     """Main entrypoint"""
-    text = "Bonjor, je m'appelle Antoine et j'est 14 ans"
-    res = spell_check(text)
-    print_spell_check_results(text, res)
+    filename = cli[0]
+    with open(filename, "r", encoding="utf8") as stream:
+        text = stream.read()
+    sentences = split_sentences(text)
+    builder = ResultBuilder()
+    for sentence in sentences:
+        print(sentence)
+        res = spell_check(sentence)
+        builder.append_results(sentence, res["corrections"])
+    print_spell_check_results(text, builder.corrections)
 
 
 if __name__ == "__main__":
-    main()
+    main(sys.argv[1:])
