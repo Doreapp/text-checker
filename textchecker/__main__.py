@@ -7,7 +7,7 @@ import urllib
 
 import requests
 
-from .colors import on_green, on_red
+from .utils import on_green, on_red, print_progress_bar
 
 SPELLCHECK_URL = "https://orthographe.reverso.net/api/v1/Spelling"
 FAKE_USER_AGENT = "Mozilla/5.0 (Windows NT 6.2; rv:20.0) Gecko/20121202 Firefox/20.0"
@@ -97,10 +97,11 @@ def main(cli):
         text = stream.read()
     sentences = split_sentences(text)
     builder = ResultBuilder()
-    for sentence in sentences:
-        print(sentence)
-        res = spell_check(sentence)
-        builder.append_results(sentence, res["corrections"])
+    print("Loading corrections...")
+    for index, sentence in enumerate(sentences, start=1):
+        print_progress_bar(index, len(sentences))
+        result = spell_check(sentence)
+        builder.append_results(sentence, result["corrections"])
     print_spell_check_results(text, builder.corrections)
 
 
