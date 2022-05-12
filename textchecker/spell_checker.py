@@ -18,8 +18,12 @@ class SpellChecker:
     """Spell checker of a text"""
 
     def __init__(self, text: str):
+        """
+        :param text: Text to check
+        """
         self.text = text
-        self.result_builder = self.ResultBuilder()
+        self.corrections = []
+        self.full_text = ""
 
     def check(self):
         """
@@ -30,42 +34,34 @@ class SpellChecker:
         for index, subpart in enumerate(subparts, start=1):
             print_progress_bar(index, len(subparts))
             result = spell_check(subpart)
-            self.result_builder.append_results(subpart, result["corrections"])
+            self.append_results(subpart, result["corrections"])
+
+    def append_results(self, text: str, corrections: list):
+        """
+        Append corrections to global results
+        :param text: Text checked
+        :corrections: List of corrections to apply
+        """
+        for correction in corrections:
+            correction["startIndex"] += len(self.full_text)
+            correction["endIndex"] += len(self.full_text)
+            self.corrections.append(correction)
+        self.full_text += text + " "
 
     def print_results(self):
         """
-        Print properly corrections
-        :param text: Text checked
-        :param corrections: corrections suggested
+        Properly print corrections.
+        Should be called after ``check()`` function.
         """
         index = 0
         result_text = ""
-        for correction in self.result_builder.corrections:
-            result_text += self.result_builder.full_text[index : correction["startIndex"]]
+        for correction in self.corrections:
+            result_text += self.full_text[index : correction["startIndex"]]
             suggestions_text = build_suggestion_text(correction["suggestions"])
             result_text += on_red(correction["mistakeText"]) + on_green(suggestions_text)
             index = correction["endIndex"] + 1
-        result_text += self.result_builder.full_text[index:]
+        result_text += self.full_text[index:]
         print(result_text)
-
-    class ResultBuilder:  # pylint: disable=too-few-public-methods
-        """Build of full reverso result"""
-
-        def __init__(self):
-            self.corrections = []
-            self.full_text = ""
-
-        def append_results(self, text: str, corrections: list):
-            """
-            Append corrections to global results
-            :param text: Text checked
-            :corrections: List of corrections to apply
-            """
-            for correction in corrections:
-                correction["startIndex"] += len(self.full_text)
-                correction["endIndex"] += len(self.full_text)
-                self.corrections.append(correction)
-            self.full_text += text + " "
 
 
 def spell_check(text: str, language: str = "fra") -> dict:
@@ -97,65 +93,60 @@ def spell_check(text: str, language: str = "fra") -> dict:
 
 def build_suggestion_text(suggestions: list) -> str:
     """
-    Build and return a text concatenating suggestions
+    Build and return a text concatenating ``suggestions``
     """
-    suggestions_text = "["
-    for pos, suggestion in enumerate(suggestions):
-        if pos > 0:
-            suggestions_text += "|"
-        suggestions_text += suggestion["text"]
-    suggestions_text += "]"
-    return suggestions_text
+    texts = map(lambda suggestion: suggestion["text"], suggestions)
+    return "[" + "|".join(texts) + "]"
+
+
+def merge_text_parts(parts: list, max_length, join=" ") -> list:
+    """
+    Merge a list of text parts in longer parts
+    :param parts: List of strings to merge
+    :param max_length: Max length to reach but not exceed
+    :param join: Text to add between parts
+    :return: List of the merged subparts
+    """
+    current_part = ""
+    join_length = len(join)
+    for part in parts:
+        if len(part) > max_length:
+            raise Exception(
+                "Unable to split the text in small-enough parts. Problematic section: " + part
+            )
+        if len(current_part) + len(part) + join_length > max_length:
+            yield current_part
+            current_part = part
+        else:
+            current_part += join + part
+    yield current_part
 
 
 def split_sentence(text: str, max_length=450) -> list:
     """
-    Split a single sentence in several subparts
+    Split a single sentence in several subparts, using " " as separator.
+    :param text: Text to split
+    :param max_length: Max length of a subpart
+    :return: List of the extracts subparts
     """
     parts = text.split(" ")
-    merged_parts = []
-    current_part = ""
-    for part in parts:
-        if len(current_part) + len(part) + 1 > max_length:
-            merged_parts.append(current_part)
-            current_part = part
-        else:
-            current_part += " " + part
-    merged_parts.append(current_part)
-    return merged_parts
+    return list(merge_text_parts(parts, max_length))
 
 
 def split_text(text: str, max_length=450) -> list:
     """
     Split a string in several sub-parts.
     Try to maximize the size of subparts, while remaining bellow ``max_length``.
-
     :param text: Text to split
-    :param max_length: Max length of a sub-part
+    :param max_length: Max length of a subpart
     :return: List of extracted subparts
     """
     parts = re.split(r"(.+[\n.?!:])", text)
     cleaned_parts = []
     for part in parts:
         part = part.strip()
-        if len(part) == 0:
-            continue
         if len(part) > max_length:
             cleaned_parts.extend(split_sentence(part, max_length))
         else:
             cleaned_parts.append(part)
-    for part in cleaned_parts:
-        if len(part) > max_length:
-            raise Exception(
-                "Unable to split the text in small-enough parts. Problematic section: " + part
-            )
-    merged_parts = []
-    current_part = ""
-    for part in cleaned_parts:
-        if len(current_part) + len(part) > max_length:
-            merged_parts.append(current_part)
-            current_part = part
-        else:
-            current_part += " " + part
-    merged_parts.append(current_part)  # Add last one
-    return merged_parts
+    return list(merge_text_parts(cleaned_parts, max_length))
