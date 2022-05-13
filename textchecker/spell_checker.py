@@ -132,7 +132,7 @@ def split_sentence(text: str, max_length=MAX_TEXT_LENGTH) -> list:
     Split a single sentence in several subparts, using " " as separator.
     :param text: Text to split
     :param max_length: Max length of a subpart
-    :return: List of the extracts subparts
+    :return: List of the extracted subparts
     """
     parts = text.split(" ")
     return list(merge_text_parts(parts, max_length))
@@ -140,7 +140,7 @@ def split_sentence(text: str, max_length=MAX_TEXT_LENGTH) -> list:
 
 def split_text(text: str, max_length=MAX_TEXT_LENGTH) -> list:
     """
-    Split a string in several sub-parts.
+    Split a string in several subparts.
     Try to maximize the size of subparts, while remaining bellow ``max_length``.
     :param text: Text to split
     :param max_length: Max length of a subpart
