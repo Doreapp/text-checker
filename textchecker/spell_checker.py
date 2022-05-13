@@ -91,6 +91,8 @@ def spell_check(text: str, language: str = "fra") -> dict:
     try:
         response.raise_for_status()
     except requests.exceptions.HTTPError as exc:
+        if response.status_code == 429:
+            raise Exception("Too many requests... Request refused by server.") from exc
         raise Exception(f"Unable to check spelling of '{text}'") from exc
 
     return response.json()
