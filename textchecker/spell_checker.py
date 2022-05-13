@@ -12,6 +12,7 @@ from .utils import on_green, on_red, print_progress_bar
 SPELLCHECK_URL = "https://orthographe.reverso.net/api/v1/Spelling"
 FAKE_USER_AGENT = "Mozilla/5.0 (Windows NT 6.2; rv:20.0) Gecko/20121202 Firefox/20.0"
 SUPPORTED_LANGUAGES = ("fra", "eng")
+MAX_TEXT_LENGTH = 450
 
 
 class SpellChecker:
@@ -68,14 +69,16 @@ def spell_check(text: str, language: str = "fra") -> dict:
     """
     Check the spelling of the ``text``.
 
-    :param text: Text to check, should be smaller or do exactly 450 chars
+    :param text: Text to check, should be smaller or do exactly ``MAX_TEXT_LENGTH`` chars
     :param language: Text's language
     :return: Response from reverso
     """
     if language not in SUPPORTED_LANGUAGES:
         raise Exception(f"Language '{language}' not supported")
-    if len(text) > 450:
-        raise Exception(f"Text is too long. length={len(text)}, max=450, text='{text}'.")
+    if len(text) > MAX_TEXT_LENGTH:
+        raise Exception(
+            f"Text is too long. length={len(text)}, max={MAX_TEXT_LENGTH}, text='{text}'."
+        )
     response = requests.get(
         f"{SPELLCHECK_URL}?text={urllib.parse.quote(text)}&language={language}"
         "&getCorrectionDetails=true",
@@ -124,7 +127,7 @@ def merge_text_parts(parts: list, max_length, join=" ") -> list:
     yield current_part
 
 
-def split_sentence(text: str, max_length=450) -> list:
+def split_sentence(text: str, max_length=MAX_TEXT_LENGTH) -> list:
     """
     Split a single sentence in several subparts, using " " as separator.
     :param text: Text to split
@@ -135,7 +138,7 @@ def split_sentence(text: str, max_length=450) -> list:
     return list(merge_text_parts(parts, max_length))
 
 
-def split_text(text: str, max_length=450) -> list:
+def split_text(text: str, max_length=MAX_TEXT_LENGTH) -> list:
     """
     Split a string in several sub-parts.
     Try to maximize the size of subparts, while remaining bellow ``max_length``.
