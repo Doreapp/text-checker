@@ -74,6 +74,8 @@ def spell_check(text: str, language: str = "fra") -> dict:
     """
     if language not in SUPPORTED_LANGUAGES:
         raise Exception(f"Language '{language}' not supported")
+    if len(text) > 450:
+        raise Exception(f"Text is too long. length={len(text)}, max=450, text='{text}'.")
     response = requests.get(
         f"{SPELLCHECK_URL}?text={urllib.parse.quote(text)}&language={language}"
         "&getCorrectionDetails=true",
