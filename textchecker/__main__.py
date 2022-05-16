@@ -5,7 +5,7 @@ Main entrypoint
 import argparse
 import sys
 
-from .spell_checker import SpellChecker
+from .checkers import Reverso
 
 
 def get_cli_parser() -> argparse.ArgumentParser:
@@ -25,9 +25,9 @@ def main(cli: list):
     arguments = get_cli_parser().parse_args(cli)
     with open(arguments.path, "r", encoding="utf8") as stream:
         text = stream.read()
-    spell_checker = SpellChecker(text)
-    spell_checker.check()
-    spell_checker.print_results()
+    spell_checker = Reverso()
+    results = spell_checker.check(text)
+    print(results.to_string())
 
 
 if __name__ == "__main__":

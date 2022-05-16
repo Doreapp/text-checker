@@ -39,3 +39,16 @@ def print_progress_bar(progress, max_progress, bar_width=60):
     print(f"\r {progress_bar}  {percent:.0f}%", end="\r")
     if progress == max_progress:
         print()
+
+
+def iterate_with_bar(iterable, length=None):
+    """
+    Iterate through the iterable, while displaying a progress bar
+    :param iterable:
+    :param length: size of iterable. If None, will use len(iterable).
+    """
+    if length is None:
+        length = len(iterable)
+    for index, value in enumerate(iterable):
+        yield value
+        print_progress_bar(index, length)
