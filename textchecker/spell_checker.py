@@ -35,6 +35,10 @@ class SpellChecker:
         for index, subpart in enumerate(subparts, start=1):
             print_progress_bar(index, len(subparts))
             result = spell_check(subpart)
+            if not result:
+                print()  # Finish progress bar line
+                print(on_red("/!\\ Spell check refused by server."))
+                break
             self.append_results(subpart, result["corrections"])
 
     def append_results(self, text: str, corrections: list):
@@ -71,7 +75,7 @@ def spell_check(text: str, language: str = "fra") -> dict:
 
     :param text: Text to check, should be smaller or do exactly ``MAX_TEXT_LENGTH`` chars
     :param language: Text's language
-    :return: Response from reverso
+    :return: Response from reverso. None if the server refused to respond.
     """
     if language not in SUPPORTED_LANGUAGES:
         raise Exception(f"Language '{language}' not supported")
@@ -91,6 +95,8 @@ def spell_check(text: str, language: str = "fra") -> dict:
     try:
         response.raise_for_status()
     except requests.exceptions.HTTPError as exc:
+        if response.status_code == 429:
+            return None
         raise Exception(f"Unable to check spelling of '{text}'") from exc
 
     return response.json()
