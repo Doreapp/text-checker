@@ -3,6 +3,7 @@ Spell checkers implementations
 """
 import re
 import urllib
+import html
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import List
@@ -196,3 +197,53 @@ class Reverso(SpellChecker):
             for correction in result
         ]
         current_result.append_corrections(input_text, parsed_corrections)
+
+class Scribens(SpellChecker):
+    """SpellChecker using scrbiens technology"""
+    def __init__(self):
+        super().__init__("https://www.scribens.fr/Scribens/TextSolution_Servlet", ("fr",), 200000)
+
+    def _unit_check(self, text: str, language: str) -> dict:
+        """Check the spelling of ``text`` using the API"""
+        response = requests.post(
+            self.url,
+            headers={
+                "Accept": "*/*",
+                "Connection": "keep-alive",
+                "User-Agent": FAKE_USER_AGENT,
+            },
+            data={
+                "FunctionName": "GetTextSolution",
+                "texteHTML": "<p>" + text.replace("\n", "</p><p>") + "</p>",
+                "langId": "fr"
+            }
+        )
+        try:
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as exc:
+            raise Exception(f"Unable to check spelling of '{text}'") from exc
+        return response.json()
+    
+    def check(self, text: str, language: str = "fr") -> SpellCheckResult:
+        """
+        Check the spelling of ``text`` using scrbiens checker's technology
+        """
+        if language not in self.languages:
+            raise Exception(f"Language '{language}' not supported")
+        subparts = self.split_text(text)
+        result = SpellCheckResult()
+        print("Loading corrections...")
+        for subpart in subparts:
+            raw_corrections = self._unit_check(subpart, language)
+            self._parse_result(result, subpart, raw_corrections)
+        return result
+    
+    @staticmethod
+    def _parse_result(current_result: SpellCheckResult, input_text: str, result: dict):
+        """
+        Parse raw corrections an update ``current_result`` accoringly.
+        :param current_result: Current SpellCheckResult, to update
+        :param input: Text input, corrected
+        :param result: Result from API call
+        """
+        print(result)

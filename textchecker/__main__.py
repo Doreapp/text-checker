@@ -3,9 +3,10 @@ Main entrypoint
 """
 
 import argparse
+import html
 import sys
 
-from .checkers import Reverso
+from .checkers import Reverso, Scribens
 
 
 def get_cli_parser() -> argparse.ArgumentParser:
@@ -25,7 +26,7 @@ def main(cli: list):
     arguments = get_cli_parser().parse_args(cli)
     with open(arguments.path, "r", encoding="utf8") as stream:
         text = stream.read()
-    spell_checker = Reverso()
+    spell_checker = Scribens()
     results = spell_checker.check(text)
     print(results.to_string())
 
